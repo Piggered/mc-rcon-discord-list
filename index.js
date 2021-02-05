@@ -42,7 +42,7 @@ client.on('ready', async () => {
             for (const player of players) {
                 const emoji = emojis.cache.find(e => e.name === player) ?? unknown;
     
-                description += `${emoji} ${player}\n`;
+                description += `${emoji} ${player.replace(/_/g, '\\_')}\n`;
             }
 
             playerCount = players.length;
