@@ -1,6 +1,7 @@
 require('dotenv').config();
+require('console-stamp')(console, { pattern: 'yyyy-mm-dd HH:MM:ss' });
 
-const Cron = require('node-cron');
+const CronJob = require('cron').CronJob;
 const Discord = require('discord.js');
 const Rcon = require('rcon-client').Rcon;
 
@@ -11,16 +12,38 @@ const {
     DISCORD_POST_CHANNEL,
     DISCORD_POST_GUILD,
     DISCORD_POST_MESSAGE,
-    RCON_HOSTNAME,
+    RCON_HOST,
+    RCON_PORT,
     RCON_PASSWORD
 } = process.env;
 
-const rcon = new Rcon({
-    host: RCON_HOSTNAME,
+const rconOptions = {
+    host: RCON_HOST,
+    port: RCON_PORT,
     password: RCON_PASSWORD
-});
+};
 
+const rcon = new Rcon(rconOptions);
 const client = new Discord.Client();
+
+let connected = false;
+
+async function connectRcon() {
+    connected = false;
+
+    while (!connected) {
+        try {
+            await rcon.connect();
+            connected = true;
+
+            console.log('Connected to server RCON!');
+        } catch {
+            console.error('Connection to server RCON failed, retrying in 5...');
+
+            await new Promise(r => setTimeout(r, 5000));
+        }
+    }
+}
 
 client.on('ready', async () => {
     const emojiGuild = client.guilds.cache.get(DISCORD_EMOJI_GUILD);
@@ -31,7 +54,13 @@ client.on('ready', async () => {
     const message = await channel.messages.fetch(DISCORD_POST_MESSAGE);
     const unknown = emojis.cache.find(e => e.name === 'Unknown');
 
-    Cron.schedule(CRON_JOB, async () => {
+    const onTick = async () => {
+        if (!connected) { 
+            return;
+        }
+
+        console.log('Fetching player list...');
+
         const response = await rcon.send('list');
         const players = response.split(':')[1].split(', ');
 
@@ -39,16 +68,20 @@ client.on('ready', async () => {
         let playerCount;
 
         if (players[0] !== '') {
+            playerCount = players.length;
+
+            console.log(`List yielded ${playerCount} user(s): ${players.join(', ')}`);
+
             for (const player of players) {
                 const emoji = emojis.cache.find(e => e.name === player) ?? unknown;
     
                 description += `${emoji} ${player.replace(/_/g, '\\_')}\n`;
             }
-
-            playerCount = players.length;
         } else {
             description = '*It\'s lonely over there...* 😢';
             playerCount = 0;
+
+            console.log('List yielded 0 user(s)');
         }
 
         const embed = {
@@ -60,10 +93,27 @@ client.on('ready', async () => {
         };
 
         message.edit({ embed });
+    };
+
+    new CronJob({
+        cronTime: CRON_JOB,
+        runOnInit: true,
+        start: true,
+        onTick
     });
 });
 
-(async () => {
-    await rcon.connect();
-    await client.login(DISCORD_BOT_TOKEN);
-})();
+rcon.on('end', async () => {
+    console.error('Lost connection to server RCON, reconnecting in 5...');
+
+    await new Promise(r => setTimeout(r, 5000));
+    connectRcon();
+});
+
+console.log('Logging into Discord...');
+
+client.login(DISCORD_BOT_TOKEN).then(() => {
+    console.log('Connecting to server RCON...');
+
+    connectRcon();
+});
