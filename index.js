@@ -64,6 +64,7 @@ client.on('ready', async () => {
         const response = await rcon.send('list');
         const players = response.split(':')[1].split(', ');
 
+        let color = 0x43B581;
         let description = '';
         let playerCount;
 
@@ -78,18 +79,19 @@ client.on('ready', async () => {
                 description += `${emoji} ${player.replace(/_/g, '\\_')}\n`;
             }
         } else {
-            description = '*It\'s lonely over there...* 😢';
+            description = '*It\'s lonely over here...* 😢';
+            color = 0x747F8D;
             playerCount = 0;
 
             console.log('List yielded 0 user(s)');
         }
 
         const embed = {
-            color: 0x43B581,
             title: 'Online Players',
             footer: { text: `${playerCount} player${playerCount === 1 ? '' : 's'} online` },
             timestamp: new Date(),
-            description
+            description,
+            color
         };
 
         message.edit({ embed });
