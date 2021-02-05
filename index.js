@@ -36,17 +36,25 @@ client.on('ready', async () => {
         const players = response.split(':')[1].split(', ');
 
         let description = '';
+        let playerCount;
 
-        for (const player of players) {
-            const emoji = emojis.cache.find(e => e.name === player) ?? unknown;
+        if (players[0] !== '') {
+            for (const player of players) {
+                const emoji = emojis.cache.find(e => e.name === player) ?? unknown;
+    
+                description += `${emoji} ${player}\n`;
+            }
 
-            description += `${emoji} ${player}\n`;
+            playerCount = players.length;
+        } else {
+            description = '*It\'s lonely over there...* 😢';
+            playerCount = 0;
         }
 
         const embed = {
             color: 0x43B581,
             title: 'Online Players',
-            footer: { text: `${players.length} player${players.length === 1 ? '' : 's'} online` },
+            footer: { text: `${playerCount} player${playerCount === 1 ? '' : 's'} online` },
             timestamp: new Date(),
             description
         };
