@@ -26,9 +26,10 @@ const rconOptions = {
 const rcon = new Rcon(rconOptions);
 const client = new Discord.Client();
 
-let connected = false;
+let tickCallback;
+let connected;
 
-async function connectRcon() {
+async function connectRcon(executeTick) {
     connected = false;
 
     while (!connected) {
@@ -37,6 +38,10 @@ async function connectRcon() {
             connected = true;
 
             console.log('Connected to server RCON!');
+
+            if (executeTick) {
+                tickCallback();
+            }
         } catch {
             console.error('Connection to server RCON failed, retrying in 5...');
 
@@ -103,13 +108,28 @@ client.on('ready', async () => {
         start: true,
         onTick
     });
+
+    tickCallback = onTick;
 });
 
 rcon.on('end', async () => {
     console.error('Lost connection to server RCON, reconnecting in 5...');
 
+    const postGuild = client.guilds.cache.get(DISCORD_POST_GUILD);
+    const channel = postGuild.channels.cache.get(DISCORD_POST_CHANNEL);
+    const message = await channel.messages.fetch(DISCORD_POST_MESSAGE);
+
+    const embed = {
+        title: 'Server Offline',
+        description: '*It\'s dead...* ☠️',
+        timestamp: new Date(),
+        color: 0xF04747
+    };
+
+    message.edit({ embed });
+
     await new Promise(r => setTimeout(r, 5000));
-    connectRcon();
+    connectRcon(true);
 });
 
 console.log('Logging into Discord...');
@@ -117,5 +137,5 @@ console.log('Logging into Discord...');
 client.login(DISCORD_BOT_TOKEN).then(() => {
     console.log('Connecting to server RCON...');
 
-    connectRcon();
+    connectRcon(false);
 });
