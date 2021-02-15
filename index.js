@@ -60,7 +60,7 @@ client.on('ready', async () => {
     const unknown = emojis.cache.find(e => e.name === 'Unknown');
 
     const onTick = async () => {
-        if (!connected) { 
+        if (!connected) {
             return;
         }
 
@@ -80,7 +80,7 @@ client.on('ready', async () => {
 
             for (const player of players) {
                 const emoji = emojis.cache.find(e => e.name === player) ?? unknown;
-    
+
                 description += `${emoji} ${player.replace(/_/g, '\\_')}\n`;
             }
         } else {
@@ -121,7 +121,7 @@ rcon.on('end', async () => {
 
     const embed = {
         title: 'Server Offline',
-        description: '*It\'s dead...* ☠️',
+        description: `🪦 R.I.P. Server 20XX-20XX`,
         timestamp: new Date(),
         color: 0xF04747
     };
